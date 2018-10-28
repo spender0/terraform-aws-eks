@@ -1,16 +1,12 @@
-### Terraform config for automated AWS EKS cluster deploy
+### Yet another Terraform config for automated AWS EKS cluster deploy
 
-![alt text]()
-
-##### Based on
-* https://www.terraform.io/docs/providers/aws/guides/eks-getting-started.html
-* https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html
+![alt text](https://github.com/spender0/terraform-aws-eks/raw/master/diagram.jpg)
 
 ##### Features
-* Saves money with dynamic auto-scaling based on Cluster-autoscaler: https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler
+* Dynamic auto-scaling based on Cluster-autoscaler: https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler
 * Spot instances also supported
-* Able to create as many auto-scaling groups with different properties as needed
-* Able to restrict running applications on "spot" or "system" instances 
+* Multigroup, able to create as many auto-scaling groups with different properties as needed
+* Supported constraints. Able to restrict running applications on a particular group of instances, e.g run all system pods like Dashboard on the system group of nodes
 * Flexible, most AWS settings are represented as terraform variables
 * Well organized, with modules, as recommended by Terraform guys: https://www.terraform.io/docs/enterprise/workspaces/repo-structure.html#multiple-workspaces-per-repo-recommended-
 
@@ -22,11 +18,18 @@
 * terraform: https://www.terraform.io/intro/getting-started/install.html
 
 ##### Terraform workflow
+
 * Run aws configure to specify access key and secret 
 
 `aws configure`
 
-* init 
+* Clone this repository
+
+`git clone https://github.com/spender0/terraform-aws-eks.git`
+
+`cd terraform-aws-eks`
+
+* Terraform init 
 
 `terraform init`
 
@@ -42,3 +45,7 @@
 `terraform apply -var 'eks_cluster_name=terraform-eks-dev'`
 
 * if everything is ok it will show farther instructions that need to be done on EKS side
+
+##### Based on
+* https://www.terraform.io/docs/providers/aws/guides/eks-getting-started.html
+* https://docs.aws.amazon.com/eks/latest/userguide/getting-started.html
