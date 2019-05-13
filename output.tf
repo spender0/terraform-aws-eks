@@ -10,8 +10,8 @@ data "template_file" "cluster_autoscaler_yaml" {
 data "template_file" "config_map_aws_auth" {
   template = "${file("config-map-aws-auth.t.yaml")}"
   vars {
-    system_node_iam_role.node_iam_role_arn  = "${module.system_node_iam_role.node_iam_role_arn}"
-    regular_node_iam_role.node_iam_role_arn = "${module.regular_node_iam_role.node_iam_role_arn}"
+    system_node_iam_role_arn  = "${module.system_node_iam_role.node_iam_role_arn}"
+    regular_node_iam_role_arn = "${module.regular_node_iam_role.node_iam_role_arn}"
 
   }
 }
