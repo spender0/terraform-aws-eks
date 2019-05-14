@@ -9,9 +9,8 @@ data "aws_ami" "ami" {
   count = "${var.node_create}"
   filter {
     name   = "name"
-    values = ["amazon-eks-node-v*"]
+    values = ["amazon-eks-node-${var.node_k8s_version}-v*"]
   }
-  name_regex       = "^amazon-eks-node-v[2,3]"
   most_recent = true
   owners      = ["602401143452"] # Amazon EKS AMI Account ID
 }

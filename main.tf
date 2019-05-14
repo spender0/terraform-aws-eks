@@ -38,6 +38,7 @@ module "eks_iam_role" {
 module "eks" {
   source = "./modules/eks"
   eks_cluster_name          = "${var.eks_cluster_name}"
+  eks_k8s_version           = "${var.k8s_version}"
   eks_vpc_id                = "${module.net.net_vpc_id}"
   eks_cluster_subnet_ids    = ["${module.net.net_vpc_subnet_ids}"]
   eks_security_group_id     = "${module.security_group.security_group_id_eks}"
@@ -80,6 +81,7 @@ module "system_node" {
   node_eks_endpoint                       = "${module.eks.eks_cluster_endpoint}"
   node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
+  node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = "${module.net.net_vpc_id}"
   node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
@@ -109,6 +111,7 @@ module "spot_node" {
   node_eks_endpoint                       = "${module.eks.eks_cluster_endpoint}"
   node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
+  node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = "${module.net.net_vpc_id}"
   node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
@@ -137,6 +140,7 @@ module "on_demand_node" {
   node_eks_endpoint                       = "${module.eks.eks_cluster_endpoint}"
   node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
+  node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = "${module.net.net_vpc_id}"
   node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
   node_security_group_id                  = "${module.security_group.security_group_id_node}"

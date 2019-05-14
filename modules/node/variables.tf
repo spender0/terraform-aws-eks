@@ -3,6 +3,7 @@ variable "node_vpc_id" {}
 variable "node_vpc_zone_identifier" {type = "list" }
 variable "node_security_group_id" {}
 variable "node_eks_cluster_name" {}
+variable "node_k8s_version" {}
 variable "node_eks_endpoint" {}
 variable "node_eks_security_group_id" {}
 variable "node_eks_ca" {}
