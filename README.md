@@ -16,6 +16,7 @@
 * aws cli: https://docs.aws.amazon.com/cli/latest/userguide/installing.html
 * kubectl and aws-iam-authenticator: https://docs.aws.amazon.com/eks/latest/userguide/configure-kubectl.html
 * terraform: https://www.terraform.io/intro/getting-started/install.html
+* helm and tiller(local): https://helm.sh/docs/install/
 
 ##### Terraform workflow
 

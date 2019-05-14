@@ -11,7 +11,7 @@ data "aws_ami" "ami" {
     name   = "name"
     values = ["amazon-eks-node-v*"]
   }
-
+  name_regex       = "^amazon-eks-node-v[2,3]"
   most_recent = true
   owners      = ["602401143452"] # Amazon EKS AMI Account ID
 }
@@ -69,9 +69,14 @@ resource "aws_autoscaling_group" "node_autoscaling_group" {
     propagate_at_launch = true
   }
   //enable cluster-autoscaler
+//  tag {
+//    key                 = "kubernetes.io/cluster-autoscaler/${var.node_eks_cluster_name}"
+//    value               = "true"
+//    propagate_at_launch = true
+//  }
   tag {
-    key                 = "kubernetes.io/cluster-autoscaler/${var.node_eks_cluster_name}"
-    value               = "true"
+    key = "k8s.io/cluster-autoscaler/enabled"
+    value = "true"
     propagate_at_launch = true
   }
 }

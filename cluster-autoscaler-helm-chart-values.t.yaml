@@ -1,0 +1,11 @@
+---
+# see https://github.com/helm/charts/blob/master/stable/cluster-autoscaler/values.yaml
+autoDiscovery:
+  clusterName: ${eks_cluster_name}
+awsRegion: ${aws_region} 
+nodeSelector:
+  #cluster-autoscaler is system component and should only run on system nodes
+  aws_autoscaling_group_name: "${system_node_autoscaling_group_name}"
+rbac:
+  create: true
+sslCertHostPath: /etc/kubernetes/pki/ca.crt

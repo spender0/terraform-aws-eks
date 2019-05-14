@@ -1,6 +1,7 @@
 provider "aws" {
-  region     = "${var.aws_region}"
 }
+
+data "aws_region" "current" {}
 
 //import ssh public key
 resource "aws_key_pair" "key-pair" {
@@ -21,7 +22,7 @@ module "net" {
 module "security_group" {
   source = "./modules/security_group"
   security_group_name_eks                 = "${var.eks_cluster_name}"
-  security_group_name_node                = "${var.eks_cluster_name}-node}"
+  security_group_name_node                = "${var.eks_cluster_name}-node"
   security_group_vpc_id                   = "${module.net.net_vpc_id}"
   security_group_eks_external_cidr_blocks = "${var.security_group_eks_external_cidr_blocks}"
   security_group_eks_cluster_name         = "${var.eks_cluster_name}"
@@ -60,7 +61,7 @@ module "regular_node_iam_role" {
 }
 
 #create system nodes for running such applications as kubernetes-dashboard and cluster-autscaller
-module "system_nodes" {
+module "system_node" {
   source                                  = "./modules/node"
   node_create                             = "${var.system_node_create}"
   node_iam_role_name                      = "${module.system_node_iam_role.node_iam_role_name}"
@@ -88,7 +89,7 @@ module "system_nodes" {
 
 #create spot nodes for running stateless and replicated applications
 #where removing a host doesn't harm distributed application cluster
-module "spot_nodes" {
+module "spot_node" {
   source                                  = "./modules/node"
   node_create                             = "${var.spot_node_create}"
   node_iam_role_name                      = "${module.regular_node_iam_role.node_iam_role_name}"
@@ -117,7 +118,7 @@ module "spot_nodes" {
 
 #create on_demand nodes group for running other applications
 #these are default nodes
-module "on_demand_nodes" {
+module "on_demand_node" {
   source                                  = "./modules/node"
   node_create                             = "${var.on_demand_node_create}"
   node_iam_role_name                      = "${module.regular_node_iam_role.node_iam_role_name}"
