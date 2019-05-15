@@ -2,6 +2,7 @@ provider "aws" {
 }
 
 data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
 
 //import ssh public key
 resource "aws_key_pair" "key-pair" {
@@ -28,6 +29,32 @@ module "security_group" {
   security_group_eks_cluster_name         = "${var.eks_cluster_name}"
 }
 
+
+
+#create iam role for system nodes
+module "system_node_iam_role" {
+  source                                          = "./modules/node_iam_role"
+  node_iam_role_name                              = "${var.eks_cluster_name}-system-node"
+  node_iam_role_cluster_autoscaler_role_name      = "${var.eks_cluster_name}-cluster-autoscaler"
+  node_iam_role_aws_account_id                    = "${data.aws_caller_identity.current.account_id}"
+}
+
+#create iam role for other nodes
+module "regular_node_iam_role" {
+  source                                          = "./modules/node_iam_role"
+  node_iam_role_name                              = "${var.eks_cluster_name}-regular-node"
+  node_iam_role_cluster_autoscaler_role_name      = "${var.eks_cluster_name}-cluster-autoscaler"
+  node_iam_role_aws_account_id                    = "${data.aws_caller_identity.current.account_id}"
+}
+
+#create cluster autoscaler iam role
+module "cluster_autoscaler_iam_role" {
+  source = "modules/cluster_autoscaler_iam_role"
+  cluster_autoscaler_iam_role_name         = "${var.eks_cluster_name}-cluster-autoscaler"
+  cluster_autoscaler_iam_policy_name       = "${var.eks_cluster_name}-cluster-autoscaler"
+  cluster_autoscaler_assuming_iam_role_arn = "${module.system_node_iam_role.node_iam_role_arn}"
+}
+
 #create eks role
 module "eks_iam_role" {
   source = "modules/eks_iam_role"
@@ -43,22 +70,6 @@ module "eks" {
   eks_cluster_subnet_ids    = ["${module.net.net_vpc_subnet_ids}"]
   eks_security_group_id     = "${module.security_group.security_group_id_eks}"
   eks_iam_role_arn         = "${module.eks_iam_role.eks_iam_role_arn}"
-}
-
-#create iam role for system nodes
-module "system_node_iam_role" {
-  source                                          = "./modules/node_iam_role"
-  node_iam_role_name                              = "${var.eks_cluster_name}-system-node"
-  node_iam_role_policy_cluster_autoscaler_name    = "${var.eks_cluster_name}-system-node"
-  node_iam_role_create_cluster_autoscaler_policy  = true
-}
-
-#create iam role for other nodes
-module "regular_node_iam_role" {
-  source                                          = "./modules/node_iam_role"
-  node_iam_role_name                              = "${var.eks_cluster_name}-regular-node"
-  node_iam_role_policy_cluster_autoscaler_name    = "${var.eks_cluster_name}-regular-node"
-  node_iam_role_create_cluster_autoscaler_policy  = false
 }
 
 #create system nodes for running such applications as kubernetes-dashboard and cluster-autscaller
@@ -85,7 +96,7 @@ module "system_node" {
   node_vpc_id                             = "${module.net.net_vpc_id}"
   node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
-  node_kubelet_extra_args                 = "--register-with-taints=aws_autoscaling_group_name=${var.eks_cluster_name}-system-node:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-system-node"
+  node_kubelet_extra_args                 = "--register-with-taints=node-role.kubernetes.io/system=system:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-system-node,node-role.kubernetes.io/system=system"
 }
 
 
@@ -115,7 +126,7 @@ module "spot_node" {
   node_vpc_id                             = "${module.net.net_vpc_id}"
   node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
-  node_kubelet_extra_args                 = "--register-with-taints=aws_autoscaling_group_name=${var.eks_cluster_name}-spot-node:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-spot-node"
+  node_kubelet_extra_args                 = "--register-with-taints=node-role.kubernetes.io/spot=spot:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-spot-node,node-role.kubernetes.io/regular=regular,node-role.kubernetes.io/spot=spot"
 }
 
 
@@ -144,5 +155,5 @@ module "on_demand_node" {
   node_vpc_id                             = "${module.net.net_vpc_id}"
   node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
-  node_kubelet_extra_args                 = "--node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-on-demand-node"
+  node_kubelet_extra_args                 = "--node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-on-demand-node,node-role.kubernetes.io/regular=regular"
 }

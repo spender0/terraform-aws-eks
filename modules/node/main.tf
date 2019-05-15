@@ -67,12 +67,6 @@ resource "aws_autoscaling_group" "node_autoscaling_group" {
     value               = "owned"
     propagate_at_launch = true
   }
-  //enable cluster-autoscaler
-//  tag {
-//    key                 = "kubernetes.io/cluster-autoscaler/${var.node_eks_cluster_name}"
-//    value               = "true"
-//    propagate_at_launch = true
-//  }
   tag {
     key = "k8s.io/cluster-autoscaler/enabled"
     value = "true"

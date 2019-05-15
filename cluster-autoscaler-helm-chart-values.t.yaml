@@ -5,7 +5,10 @@ autoDiscovery:
 awsRegion: ${aws_region} 
 nodeSelector:
   #cluster-autoscaler is system component and should only run on system nodes
-  aws_autoscaling_group_name: "${system_node_autoscaling_group_name}"
+  node-role.kubernetes.io/system: "system"
 rbac:
   create: true
 sslCertHostPath: /etc/kubernetes/pki/ca.crt
+podAnnotations:
+  iam.amazonaws.com/role: arn:aws:iam::${aws_account_id}:role/${eks_cluster_name}-cluster-autoscaler
+

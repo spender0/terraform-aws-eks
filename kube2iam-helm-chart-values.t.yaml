@@ -1,0 +1,11 @@
+---
+# see https://github.com/helm/charts/blob/master/stable/kube2iam/values.yaml 
+aws:
+  region: ${aws_region}
+rbac:
+  create: true
+host:
+  interface: eni+
+  iptables: true
+extraArgs:
+   base-role-arn: arn:aws:iam::${aws_account_id}:role/
