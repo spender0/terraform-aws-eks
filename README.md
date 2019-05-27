@@ -6,9 +6,8 @@
 * Dynamic auto-scaling based on Cluster-autoscaler: https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler
 * Spot instances also supported
 * Multigroup, able to create as many auto-scaling groups with different properties as needed
-* Supported constraints. Able to restrict running applications on a particular group of instances, e.g run all system pods like Dashboard on the system group of nodes
 * Flexible, most AWS settings are represented as terraform variables
-* Well organized, with modules, as recommended by Terraform guys: https://www.terraform.io/docs/enterprise/workspaces/repo-structure.html#multiple-workspaces-per-repo-recommended-
+* Well organized, with modules, as recommended by Terraform: https://www.terraform.io/docs/enterprise/workspaces/repo-structure.html#multiple-workspaces-per-repo-recommended-
 
 ##### Requirements
 * git: https://git-scm.com/downloads
@@ -45,7 +44,7 @@
 
 `terraform apply -var 'eks_cluster_name=terraform-eks-dev'`
 
-* if everything is ok it will show farther instructions that need to be done on EKS side
+* if everything is ok it will show farther instructions that need to be done on K8s side
 
 ##### Based on
 * https://www.terraform.io/docs/providers/aws/guides/eks-getting-started.html
