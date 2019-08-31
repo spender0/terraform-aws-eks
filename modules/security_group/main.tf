@@ -10,13 +10,13 @@ resource "aws_security_group" "security_group_eks" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags {
+  tags = {
     Name = "${var.security_group_name_eks}"
   }
 }
 
 resource "aws_security_group_rule" "security_group_eks_rule" {
-  cidr_blocks       = ["${var.security_group_eks_external_cidr_blocks}"]
+  cidr_blocks       = var.security_group_eks_external_cidr_blocks
   description       = "Allow workstation to communicate with the cluster API Server"
   from_port         = 443
   to_port           = 443

@@ -1,5 +1,8 @@
 provider "aws" {
 }
+terraform {
+  backend "s3" {}
+}
 
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
@@ -49,7 +52,7 @@ module "regular_node_iam_role" {
 
 #create cluster autoscaler iam role
 module "cluster_autoscaler_iam_role" {
-  source = "modules/cluster_autoscaler_iam_role"
+  source = "./modules/cluster_autoscaler_iam_role"
   cluster_autoscaler_iam_role_name         = "${var.eks_cluster_name}-cluster-autoscaler"
   cluster_autoscaler_iam_policy_name       = "${var.eks_cluster_name}-cluster-autoscaler"
   cluster_autoscaler_assuming_iam_role_arn = "${module.system_node_iam_role.node_iam_role_arn}"
@@ -57,7 +60,7 @@ module "cluster_autoscaler_iam_role" {
 
 #create eks role
 module "eks_iam_role" {
-  source = "modules/eks_iam_role"
+  source = "./modules/eks_iam_role"
   eks_iam_role_name = "${var.eks_cluster_name}"
 }
 
@@ -67,8 +70,8 @@ module "eks" {
   eks_cluster_name          = "${var.eks_cluster_name}"
   eks_k8s_version           = "${var.k8s_version}"
   eks_vpc_id                = "${module.net.net_vpc_id}"
-  eks_cluster_subnet_ids    = ["${module.net.net_vpc_subnet_ids}"]
-  eks_security_group_id     = "${module.security_group.security_group_id_eks}"
+  eks_cluster_subnet_ids    = module.net.net_vpc_subnet_ids
+  eks_security_group_ids     = ["${module.security_group.security_group_id_eks}"]
   eks_iam_role_arn         = "${module.eks_iam_role.eks_iam_role_arn}"
 }
 
@@ -94,7 +97,7 @@ module "system_node" {
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = "${module.net.net_vpc_id}"
-  node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
+  node_vpc_zone_identifier                = module.net.net_vpc_subnet_ids
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
   node_kubelet_extra_args                 = "--register-with-taints=node-role.kubernetes.io/system=system:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-system-node,node-role.kubernetes.io/system=system"
 }
@@ -124,7 +127,7 @@ module "spot_node" {
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = "${module.net.net_vpc_id}"
-  node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
+  node_vpc_zone_identifier                = module.net.net_vpc_subnet_ids
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
   node_kubelet_extra_args                 = "--register-with-taints=node-role.kubernetes.io/spot=spot:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-spot-node,node-role.kubernetes.io/regular=regular,node-role.kubernetes.io/spot=spot"
 }
@@ -153,7 +156,7 @@ module "on_demand_node" {
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = "${module.net.net_vpc_id}"
-  node_vpc_zone_identifier                = ["${module.net.net_vpc_subnet_ids}"]
+  node_vpc_zone_identifier                = module.net.net_vpc_subnet_ids
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
   node_kubelet_extra_args                 = "--node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-on-demand-node,node-role.kubernetes.io/regular=regular"
 }

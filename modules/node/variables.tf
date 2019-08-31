@@ -1,4 +1,4 @@
-variable "node_create" {default = false}
+variable "node_create" { default = "0" }
 variable "node_vpc_id" {}
 variable "node_vpc_zone_identifier" {type = "list" }
 variable "node_security_group_id" {}

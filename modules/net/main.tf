@@ -28,7 +28,7 @@ resource "aws_subnet" "subnets" {
 
 resource "aws_internet_gateway" "internet_gateway" {
   vpc_id = "${aws_vpc.vpc.id}"
-  tags {
+  tags = {
     Name = "${var.net_vpc_name}"
   }
 }

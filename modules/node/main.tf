@@ -1,12 +1,11 @@
 resource "aws_iam_instance_profile" "iam_instance_profile" {
-  count = "${var.node_create}"
+  count = var.node_create
   name = "${var.node_iam_instance_profile_name}"
   role = "${var.node_iam_role_name}"
 }
 
 #get latest eks node ami
 data "aws_ami" "ami" {
-  count = "${var.node_create}"
   filter {
     name   = "name"
     values = ["amazon-eks-node-${var.node_k8s_version}-v*"]
@@ -28,12 +27,12 @@ USERDATA
 }
 
 resource "aws_launch_configuration" "node_launch_configuration" {
-  count = "${var.node_create}"
+  count = var.node_create
   spot_price = "${var.node_launch_configuration_type!="spot"?"":var.node_launch_configuration_spot_price}"
   key_name                    = "${var.node_key_pair_name}"
   //having public ips is cheaper than nat gateway
   associate_public_ip_address = true
-  iam_instance_profile        = "${aws_iam_instance_profile.iam_instance_profile.name}"
+  iam_instance_profile        = "${var.node_iam_instance_profile_name}"
   image_id                    = "${data.aws_ami.ami.id}"
   instance_type               = "${var.node_launch_configuration_instance_type}"
   root_block_device {
@@ -50,13 +49,14 @@ resource "aws_launch_configuration" "node_launch_configuration" {
 }
 
 resource "aws_autoscaling_group" "node_autoscaling_group" {
-  count = "${var.node_create}"
+  count = var.node_create
   desired_capacity     = "${var.node_autoscaling_group_desired_capacity}"
-  launch_configuration = "${aws_launch_configuration.node_launch_configuration.id}"
+  launch_configuration =  "${element(aws_launch_configuration.node_launch_configuration.*.name, count.index)}"
+  #launch_configuration = "${aws_launch_configuration.node_launch_configuration.name}"
   max_size             = "${var.node_autoscaling_group_max_number}"
   min_size             = "${var.node_autoscaling_group_min_number}"
   name                 = "${var.node_autoscaling_group_name}"
-  vpc_zone_identifier  = ["${var.node_vpc_zone_identifier}"]
+  vpc_zone_identifier  = var.node_vpc_zone_identifier
   tag {
     key                 = "Name"
     value               = "${var.node_autoscaling_group_name}"

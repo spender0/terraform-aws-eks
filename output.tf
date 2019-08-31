@@ -1,6 +1,6 @@
 data "template_file" "cluster_autoscaler_helm_chart_values_t_yaml" {
   template = "${file("cluster-autoscaler-helm-chart-values.t.yaml")}"
-  vars {
+  vars = {
     aws_region = "${data.aws_region.current.name}"
     eks_cluster_name = "${var.eks_cluster_name}"
     aws_account_id = "${data.aws_caller_identity.current.account_id}"
@@ -9,7 +9,7 @@ data "template_file" "cluster_autoscaler_helm_chart_values_t_yaml" {
 
 data "template_file" "config_map_aws_auth" {
   template = "${file("config-map-aws-auth.t.yaml")}"
-  vars {
+  vars = {
     system_node_iam_role_arn  = "${module.system_node_iam_role.node_iam_role_arn}"
     regular_node_iam_role_arn = "${module.regular_node_iam_role.node_iam_role_arn}"
 
@@ -18,7 +18,7 @@ data "template_file" "config_map_aws_auth" {
 
 data "template_file" "kube2iam_helm_chart_values_t_yaml" {
   template = "${file("kube2iam-helm-chart-values.t.yaml")}"
-  vars {
+  vars = {
     aws_account_id = "${data.aws_caller_identity.current.account_id}"
     aws_region = "${data.aws_region.current.name}"
   }
@@ -72,6 +72,6 @@ kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | gre
 kubectl proxy
 #11 open dashboard
 http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/
-#12 login with that token from the spep #6
+#12 login with that token from the step #6
 RUN
 }

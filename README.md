@@ -29,9 +29,13 @@
 
 `cd terraform-aws-eks`
 
+* Create S3 bucket fro terraform state
+
+`aws s3 mb s3://YOUR_BUCKET_NAME`
+
 * Terraform init 
 
-`terraform init`
+`terraform init -backend-config "bucket=YOUR_BUCKET_NAME" -backend-config "key=file.state"`
 
 * If you are going to have one EKS per environment - select workspace (assume it is "dev"):
 
