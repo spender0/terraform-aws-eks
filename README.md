@@ -51,7 +51,7 @@
 * If everything is ok it will print farther instructions that need to be done on K8s side
 
 * Upload kubeconfig on s3
-`aws s3 cp terraform.tfstate.d/dev/kubeconfig.conf s3://spender0/env:/dev/`
+`aws s3 cp terraform.tfstate.d/dev/kubeconfig.conf s3://YOUR_BUCKET_NAME/env:/dev/`
 
 ##### Based on
 * https://www.terraform.io/docs/providers/aws/guides/eks-getting-started.html
