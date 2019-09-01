@@ -3,9 +3,9 @@
 ![alt text](https://github.com/spender0/terraform-aws-eks/raw/master/diagram.jpg)
 
 ##### Features
-* Dynamic auto-scaling based on Cluster-autoscaler: https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler
-* Spot instances also supported
-* Multigroup, able to create as many auto-scaling groups with different properties as needed
+* Dynamic auto-scaling based on Cluster Autoscaler: https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler
+* AWS IAM based authentication. Control which AWS user should be authenticated by K8s 
+* Multigroup, able to create as many auto-scaling groups with different properties as needed. Spot instances also supported
 * Flexible, most AWS settings are represented as terraform variables
 * Well organized, with modules, as recommended by Terraform: https://www.terraform.io/docs/enterprise/workspaces/repo-structure.html#multiple-workspaces-per-repo-recommended-
 
@@ -29,7 +29,7 @@
 
 `cd terraform-aws-eks`
 
-* Create S3 bucket fro terraform state
+* Create S3 bucket for terraform state
 
 `aws s3 mb s3://YOUR_BUCKET_NAME`
 
@@ -42,13 +42,16 @@
 `terraform workspace new dev` or 
 `terraform workspace select dev` (if already exists)
 
-* revise variables.tf
+* Revise variables.tf
 
-* terraform apply:
+* Terraform apply:
 
 `terraform apply -var 'eks_cluster_name=terraform-eks-dev'`
 
-* if everything is ok it will show farther instructions that need to be done on K8s side
+* If everything is ok it will print farther instructions that need to be done on K8s side
+
+* Upload kubeconfig on s3
+`aws s3 cp terraform.tfstate.d/dev/kubeconfig.conf s3://spender0/env:/dev/`
 
 ##### Based on
 * https://www.terraform.io/docs/providers/aws/guides/eks-getting-started.html
