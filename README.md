@@ -21,7 +21,7 @@
 
 * Run aws configure to specify access key and secret 
 
-`aws configure`
+`aws configure --profile YOUR_AWS_PROFILE_NAME`
 
 * Clone this repository
 

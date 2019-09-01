@@ -7,13 +7,13 @@ clusters:
 - cluster:
     server: ${aws_eks_cluster.eks_cluster.endpoint}
     certificate-authority-data: ${aws_eks_cluster.eks_cluster.certificate_authority.0.data}
-  name: kubernetes
+  name: ${var.eks_cluster_name}
 contexts:
 - context:
-    cluster: kubernetes
+    cluster: ${var.eks_cluster_name}
     user: aws
-  name: aws
-current-context: aws
+  name: ${var.eks_cluster_name}
+current-context: ${var.eks_cluster_name}
 kind: Config
 preferences: {}
 users:

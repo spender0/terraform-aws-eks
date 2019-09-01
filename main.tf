@@ -61,7 +61,10 @@ module "cluster_autoscaler_iam_role" {
 #create eks role
 module "eks_iam_role" {
   source = "./modules/eks_iam_role"
-  eks_iam_role_name = "${var.eks_cluster_name}"
+  eks_iam_role_name         = var.eks_cluster_name
+  eks_admin_iam_group_name  = "${var.eks_cluster_name}-eks-admin"
+  eks_admin_iam_role_name  = "${var.eks_cluster_name}-eks-admin"
+  eks_admin_iam_policy_name  = "${var.eks_cluster_name}-eks-admin"
 }
 
 #create eks

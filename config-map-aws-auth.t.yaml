@@ -15,3 +15,7 @@ data:
       groups:
         - system:bootstrappers
         - system:nodes
+    - rolearn: ${eks_admin_iam_role_arn}
+      username: system:*
+      groups:
+        - system:masters
