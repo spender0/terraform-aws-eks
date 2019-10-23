@@ -1,0 +1,13 @@
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    retentionSize: 9GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp2
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 10Gi
+        selector: {}  

@@ -1,3 +1,6 @@
+
+
+
 ### Yet another Terraform config for automated AWS EKS cluster deploy
 
 ![alt text](https://github.com/spender0/terraform-aws-eks/raw/master/diagram.jpg)
@@ -52,6 +55,42 @@
 
 * Upload kubeconfig on s3
 `aws s3 cp terraform.tfstate.d/dev/kubeconfig.conf s3://YOUR_BUCKET_NAME/env:/dev/`
+
+##### Access to Kubernetes Dashboard
+
+* Get a token to login dashboard with
+ 
+`kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep eks-admin | awk '{print $1}')`
+
+* Proxy dashboard port on your localhost
+
+`kubectl proxy &`
+
+* Open dashboard and login with the token http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:https/proxy/#!/login
+
+##### Add additional AWS IAM users that are supposed to be EKS admins
+
+* Add IAM users that are supposed to be EKS admins to the group named YOUR_CLUSTER_NAME-eks-admin.
+
+* The users then should assume the role in order to get AWS EKS credentials:
+
+* OPTION 1
+
+`aws sts assume-role --role-arn arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/terraform-eks-dev-eks-admin --role-session-name eks-admin`
+
+`export AWS_ACCESS_KEY_ID="get it from 'aws sts assume-role' output`
+
+`export AWS_SECRET_ACCESS_KEY="get it from 'aws sts assume-role' output`
+
+`export AWS_SESSION_TOKEN="get it from 'aws sts assume-role' output`
+
+
+* OPTION 2: add new profile to ~/.aws/config:
+[terraform-eks-dev]
+role_arn = arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/terraform-eks-dev-eks-admin
+source_profile = EXISTING_AWS_PROFILE
+
+then activate the profile `export AWS_PROFILE=terraform-eks-dev`
 
 ##### Based on
 * https://www.terraform.io/docs/providers/aws/guides/eks-getting-started.html
