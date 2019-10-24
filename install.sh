@@ -71,13 +71,19 @@ helm upgrade --install --wait \
 
 #install prometheus operator
 helm upgrade --install --wait --dry-run \
+  --namespace monitoring \
   --values ./prometheus-operator-helm-chart-values.yaml \
   --version $PROMETHEUS_OPERATOR_HELM_CHART_VERSION \
   prometheus-operator stable/prometheus-operator
 helm upgrade --install --wait \
+  --namespace monitoring \
   --values ./prometheus-operator-helm-chart-values.yaml \
   --version $PROMETHEUS_OPERATOR_HELM_CHART_VERSION \
   prometheus-operator stable/prometheus-operator
+
+helm upgrade --install --wait \
+  --namespace logging \
+  elastic-stack stable/elastic-stack
 
 cat << EOF
 Your kubeconfig is here: terraform.tfstate.d/$TERRAFORM_WORKSPACE/kubeconfig.conf

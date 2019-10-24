@@ -41,6 +41,7 @@ resource "local_file" "kube2iam_helm_chart_values" {
 
 output execute {
   value = <<RUN
-Run install.sh script to finish the cluster provisioning
+Run "kubectl apply -f ./terraform.tfstate.d/${terraform.workspace}/config-map-aws-auth.yaml" to finish nodes bootstrapping
+Run "install.sh" script to install main components and helm charts
 RUN
 }
