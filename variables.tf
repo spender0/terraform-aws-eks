@@ -24,7 +24,7 @@ variable "net_subnet_cidr_block" {
 ####### eks cluster options #############
 #########################################
 variable "eks_cluster_name" { default = "terraform-eks-demo" }
-variable "k8s_version" { default = "1.12"}
+variable "k8s_version" { default = "1.14"}
 
 #########################################
 ###### worker nodes options #############

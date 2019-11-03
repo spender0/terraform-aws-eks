@@ -67,6 +67,23 @@ module "eks_iam_role" {
   eks_admin_iam_policy_name  = "${var.eks_cluster_name}-eks-admin"
 }
 
+# generic efs
+module "efs" {
+  source                        = "./modules/efs"
+  efs_name                      = var.eks_cluster_name
+  efs_node_security_group_id    = module.security_group.security_group_id_node
+  efs_node_subnet_ids           = module.net.net_vpc_subnet_ids
+}
+
+# prometheus needs a dedicated efs due to hardcoded accessModes: ["ReadWriteOnce"]
+# see https://github.com/coreos/prometheus-operator/issues/2535
+module "efs_prometheus" {
+  source                        = "./modules/efs"
+  efs_name                      = "${var.eks_cluster_name}-prometheus"
+  efs_node_security_group_id    = module.security_group.security_group_id_node
+  efs_node_subnet_ids           = module.net.net_vpc_subnet_ids
+}
+
 #create eks
 module "eks" {
   source = "./modules/eks"

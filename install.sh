@@ -15,16 +15,21 @@ cd $DIR
 
 TERRAFORM_WORKSPACE="$(terraform workspace show | grep -oP '(.*:)?\K(.*)')"
 
-#1 kubeconfig is located in workspace folder
+# kubeconfig is located in workspace folder
 export KUBECONFIG=./terraform.tfstate.d/$TERRAFORM_WORKSPACE/kubeconfig.conf
-#2 apply map-aws-auth.yaml to finish nodes bootstraping
-kubectl apply -f ./terraform.tfstate.d/$TERRAFORM_WORKSPACE/config-map-aws-auth.yaml
-#3 wait for at least 1 node
 
-while [[ ! $(kubectl get nodes | grep -i ready) ]]; do
-  echo "INFO waiting for nodes"
-  sleep 1;
-done
+# apply map-aws-auth.yaml to finish nodes bootstraping
+kubectl apply -f ./terraform.tfstate.d/$TERRAFORM_WORKSPACE/config-map-aws-auth.yaml
+
+#delete default ebs storage class in order to replace it with aws-efs-csi-driver
+#kubectl delete sc gp2 || echo deleted
+
+# install aws-efs-csi-driver
+kubectl apply -k "github.com/kubernetes-sigs/aws-efs-csi-driver/deploy/kubernetes/overlays/stable/?ref=master"
+
+# create efs default storage class
+kubectl apply -f efs-storage-class.yaml
+
 # create service account and role for admin
 kubectl apply -f $DIR/eks-admin-service-account.yaml
 kubectl apply -f $DIR/eks-admin-cluster-role-binding.yaml
@@ -34,6 +39,13 @@ helm init --wait --client-only
 helm repo update
 killall tiller; tiller &
 export HELM_HOST=localhost:44134
+
+
+# wait for at least 1 node
+while [[ ! $(kubectl get nodes | grep -i ready) ]]; do
+  echo "INFO waiting for nodes"
+  sleep 1;
+done
 
 #deploy kube2iam
 helm upgrade --install --wait --dry-run \
@@ -70,6 +82,10 @@ helm upgrade --install --wait \
   kubernetes-dashboard stable/kubernetes-dashboard
 
 #install prometheus operator
+kubectl apply -f ./terraform.tfstate.d/$TERRAFORM_WORKSPACE/prometheus-operator-persistent-volume.yaml
+kubectl apply --wait -f fix-efs-file-permissions-job.yaml
+kubectl delete --wait -f fix-efs-file-permissions-job.yaml
+kubectl patch pv efs-prometheus-operator-pv --patch '{"spec":{"claimRef": null}}'
 helm upgrade --install --wait --dry-run \
   --namespace monitoring \
   --values ./prometheus-operator-helm-chart-values.yaml \
@@ -81,9 +97,6 @@ helm upgrade --install --wait \
   --version $PROMETHEUS_OPERATOR_HELM_CHART_VERSION \
   prometheus-operator stable/prometheus-operator
 
-helm upgrade --install --wait \
-  --namespace logging \
-  elastic-stack stable/elastic-stack
 
 cat << EOF
 Your kubeconfig is here: terraform.tfstate.d/$TERRAFORM_WORKSPACE/kubeconfig.conf

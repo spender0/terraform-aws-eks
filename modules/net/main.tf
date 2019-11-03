@@ -3,6 +3,7 @@ data "aws_availability_zones" "available" {}
 //create dedicated VPC for kubernetes related stuff
 resource "aws_vpc" "vpc" {
   cidr_block = "${var.net_vpc_cidr_block}"
+  enable_dns_hostnames = "true"
   tags = "${
     map(
      "Name", "${var.net_vpc_name}",
