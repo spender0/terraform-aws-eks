@@ -31,29 +31,8 @@ resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
   role       = "${aws_iam_role.node_iam_role.name}"
 }
 
-
-resource "aws_iam_policy" "cluster-autoscaler" {
-  name        = "${var.node_iam_role_name}-ca-assume"
-  path        = "/"
-  description = "For assuming kubernetes cluster autoscaller role"
-  policy = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": [
-          "sts:AssumeRole"
-        ],
-        "Resource": ["arn:aws:iam::${var.node_iam_role_aws_account_id}:role/${var.node_iam_role_cluster_autoscaler_role_name}"]
-      }
-    ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "cluster-autoscaler" {
-  policy_arn = "${aws_iam_policy.cluster-autoscaler.arn}"
+resource "aws_iam_role_policy_attachment" "assume" {
+  count      = "${length(var.node_iam_role_can_assume_role_policy_arns)}"
+  policy_arn = "${var.node_iam_role_can_assume_role_policy_arns[count.index]}"
   role       = "${aws_iam_role.node_iam_role.name}"
 }
-

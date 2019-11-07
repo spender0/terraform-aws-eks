@@ -11,6 +11,7 @@
 * Multigroup, able to create as many auto-scaling groups with different properties as needed. Spot instances also supported
 * Flexible, most AWS settings are represented as terraform variables
 * Well organized, with modules, as recommended by Terraform: https://www.terraform.io/docs/enterprise/workspaces/repo-structure.html#multiple-workspaces-per-repo-recommended-
+* Container storage interface (CSI) drivers aws-ebs-csi-driver and aws-efs-csi-driver
 
 ##### Requirements
 * git: https://git-scm.com/downloads

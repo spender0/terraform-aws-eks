@@ -5,11 +5,8 @@ prometheus:
     storageSpec:
       volumeClaimTemplate:
         spec:
-          storageClassName: efs-sc
+          storageClassName: ebs-sc
           accessModes: ["ReadWriteOnce"]
           resources:
             requests:
               storage: 10Gi
-        selector:
-          matchLabels:
-            app: prometheus

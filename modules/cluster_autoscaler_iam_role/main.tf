@@ -1,20 +1,39 @@
+data "aws_iam_policy_document" "can_be_assumed_by" {
+  statement {
+    actions = [
+      "sts:AssumeRole"
+    ]
+    principals {
+      identifiers = var.cluster_autoscaler_can_be_assumed_by_iam_role_arns
+      type = "AWS"
+    }
+    effect = "Allow"
+  }
+}
+
 resource "aws_iam_role" "cluster-autoscaler" {
   name = "${var.cluster_autoscaler_iam_role_name}"
-  assume_role_policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "${var.cluster_autoscaler_assuming_iam_role_arn}"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+  assume_role_policy = "${data.aws_iam_policy_document.can_be_assumed_by.json}"
 }
-POLICY
+
+resource "aws_iam_policy" "assume" {
+  name        = "${var.cluster_autoscaler_iam_policy_name}-assume"
+  path        = "/"
+  description = "For assuming ${var.cluster_autoscaler_iam_role_name} role"
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "sts:AssumeRole"
+        ],
+        "Resource": ["${aws_iam_role.cluster-autoscaler.arn}"]
+      }
+    ]
+}
+EOF
 }
 
 resource "aws_iam_policy" "cluster-autoscaler" {

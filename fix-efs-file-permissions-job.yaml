@@ -2,17 +2,14 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: fix-efs-file-permissions-prometheus-pv-claim
+  name: fix-efs-file-permissions-pv-claim
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   storageClassName: efs-sc
   resources:
     requests:
       storage: 10Gi
-  selector:
-    matchLabels:
-      app: prometheus
 ---
 apiVersion: batch/v1
 kind: Job
@@ -24,13 +21,13 @@ spec:
       containers:
         - name: alpine
           image: alpine
-          command: ["chmod",  "-R", "777", "/volumes",]
+          command: ["chmod",  "-R", "777", "/volumes/efs",]
           volumeMounts:
-          - mountPath: /volumes/prometheus
-            name: prometheus
+          - mountPath: /volumes/efs
+            name: efs
       restartPolicy: Never
       volumes:
-      - name: prometheus
+      - name: efs
         persistentVolumeClaim:
-          claimName: fix-efs-file-permissions-prometheus-pv-claim
+          claimName: fix-efs-file-permissions-pv-claim
   backoffLimit: 1

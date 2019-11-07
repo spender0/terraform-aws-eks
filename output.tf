@@ -14,15 +14,6 @@ data "template_file" "efs_persistent_volume" {
   }
 }
 
-# prometheus needs a dedicated efs due to hardcoded accessModes: ["ReadWriteOnce"]
-# see https://github.com/coreos/prometheus-operator/issues/2535
-data "template_file" "prometheus_operator_persistent_volume" {
-  template = "${file("prometheus-operator-persistent-volume.t.yaml")}"
-  vars = {
-    efs_fs_id  = "${module.efs_prometheus.efs_fs_id}"
-  }
-}
-
 data "template_file" "kube2iam_helm_chart_values_t_yaml" {
   template = "${file("kube2iam-helm-chart-values.t.yaml")}"
   vars = {
@@ -58,14 +49,15 @@ resource "local_file" "kube2iam_helm_chart_values" {
 
 resource "local_file" "efs_persistent_volume" {
   content  = "${data.template_file.efs_persistent_volume.rendered}"
-  filename = "./terraform.tfstate.d/${terraform.workspace}/efs-persistent-volume.t.yaml"
+  filename = "./terraform.tfstate.d/${terraform.workspace}/efs-persistent-volume.yaml"
 }
 
-# prometheus needs a dedicated efs due to hardcoded accessModes: ["ReadWriteOnce"]
-# see https://github.com/coreos/prometheus-operator/issues/2535
-resource "local_file" "prometheus_operator_persistent_volume" {
-  content  = "${data.template_file.prometheus_operator_persistent_volume.rendered}"
-  filename = "./terraform.tfstate.d/${terraform.workspace}/prometheus-operator-persistent-volume.yaml"
+output "ebs_csi_driver_iam_role_arn" {
+  value = "${module.ebs_csi_driver_iam_role.ebs_csi_driver_iam_role_arn}"
+}
+
+output "ebs_csi_driver_iam_role_name" {
+  value = "${module.ebs_csi_driver_iam_role.ebs_csi_driver_iam_role_name}"
 }
 
 output execute {

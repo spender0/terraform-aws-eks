@@ -34,11 +34,37 @@ module "security_group" {
 
 
 
+
+
+#create cluster autoscaler iam role
+module "cluster_autoscaler_iam_role" {
+  source = "./modules/cluster_autoscaler_iam_role"
+  cluster_autoscaler_iam_role_name         = "${var.eks_cluster_name}-cluster-autoscaler"
+  cluster_autoscaler_iam_policy_name       = "${var.eks_cluster_name}-cluster-autoscaler"
+  cluster_autoscaler_can_be_assumed_by_iam_role_arns = [
+    "${module.system_node_iam_role.node_iam_role_arn}"
+  ]
+}
+
+#create ebs_csi_driver iam role
+module "ebs_csi_driver_iam_role" {
+  source = "./modules/ebs_csi_driver_iam_role"
+  ebs_csi_driver_iam_role_name         = "${var.eks_cluster_name}-ebs-csi-driver"
+  ebs_csi_driver_iam_policy_name       = "${var.eks_cluster_name}-ebs-csi-driver"
+  ebs_csi_driver_can_be_assumed_by_iam_role_arns = [
+    "${module.system_node_iam_role.node_iam_role_arn}",
+    "${module.regular_node_iam_role.node_iam_role_arn}"
+  ]
+}
+
 #create iam role for system nodes
 module "system_node_iam_role" {
   source                                          = "./modules/node_iam_role"
   node_iam_role_name                              = "${var.eks_cluster_name}-system-node"
-  node_iam_role_cluster_autoscaler_role_name      = "${var.eks_cluster_name}-cluster-autoscaler"
+  node_iam_role_can_assume_role_policy_arns       = [
+      "${module.ebs_csi_driver_iam_role.ebs_csi_driver_iam_assume_policy_arn}",
+      "${module.cluster_autoscaler_iam_role.cluster_autoscaler_iam_assume_policy_arn}"
+  ]
   node_iam_role_aws_account_id                    = "${data.aws_caller_identity.current.account_id}"
 }
 
@@ -46,16 +72,10 @@ module "system_node_iam_role" {
 module "regular_node_iam_role" {
   source                                          = "./modules/node_iam_role"
   node_iam_role_name                              = "${var.eks_cluster_name}-regular-node"
-  node_iam_role_cluster_autoscaler_role_name      = "${var.eks_cluster_name}-cluster-autoscaler"
+  node_iam_role_can_assume_role_policy_arns       = [
+      "${module.ebs_csi_driver_iam_role.ebs_csi_driver_iam_assume_policy_arn}"
+  ]
   node_iam_role_aws_account_id                    = "${data.aws_caller_identity.current.account_id}"
-}
-
-#create cluster autoscaler iam role
-module "cluster_autoscaler_iam_role" {
-  source = "./modules/cluster_autoscaler_iam_role"
-  cluster_autoscaler_iam_role_name         = "${var.eks_cluster_name}-cluster-autoscaler"
-  cluster_autoscaler_iam_policy_name       = "${var.eks_cluster_name}-cluster-autoscaler"
-  cluster_autoscaler_assuming_iam_role_arn = "${module.system_node_iam_role.node_iam_role_arn}"
 }
 
 #create eks role
@@ -67,19 +87,10 @@ module "eks_iam_role" {
   eks_admin_iam_policy_name  = "${var.eks_cluster_name}-eks-admin"
 }
 
-# generic efs
+#efs volume
 module "efs" {
   source                        = "./modules/efs"
   efs_name                      = var.eks_cluster_name
-  efs_node_security_group_id    = module.security_group.security_group_id_node
-  efs_node_subnet_ids           = module.net.net_vpc_subnet_ids
-}
-
-# prometheus needs a dedicated efs due to hardcoded accessModes: ["ReadWriteOnce"]
-# see https://github.com/coreos/prometheus-operator/issues/2535
-module "efs_prometheus" {
-  source                        = "./modules/efs"
-  efs_name                      = "${var.eks_cluster_name}-prometheus"
   efs_node_security_group_id    = module.security_group.security_group_id_node
   efs_node_subnet_ids           = module.net.net_vpc_subnet_ids
 }
