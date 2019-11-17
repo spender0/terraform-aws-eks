@@ -12,6 +12,7 @@
 * Flexible, most AWS settings are represented as terraform variables
 * Well organized, with modules, as recommended by Terraform: https://www.terraform.io/docs/enterprise/workspaces/repo-structure.html#multiple-workspaces-per-repo-recommended-
 * Container storage interface (CSI) drivers aws-ebs-csi-driver and aws-efs-csi-driver
+* State file locking with dynamodb table https://www.terraform.io/docs/backends/types/s3.html
 
 ##### Requirements
 * git: https://git-scm.com/downloads
@@ -19,7 +20,7 @@
 * aws cli: https://docs.aws.amazon.com/cli/latest/userguide/installing.html
 * kubectl and aws-iam-authenticator: https://docs.aws.amazon.com/eks/latest/userguide/configure-kubectl.html
 * terraform: https://www.terraform.io/intro/getting-started/install.html
-* helm and tiller(local): https://helm.sh/docs/install/
+* helm version 3, without Tiller. https://github.com/helm/helm/releases
 
 ##### Terraform workflow
 
@@ -37,9 +38,18 @@
 
 `aws s3 mb s3://YOUR_BUCKET_NAME`
 
+* Create DynamoDB table for locking state file
+
+```
+aws dynamodb create-table \
+  --table-name terraform-state-lock \
+  --attribute-definitions AttributeName=LockID,AttributeType=S \
+  --key-schema AttributeName=LockID,KeyType=HASH
+```
+
 * Terraform init 
 
-`terraform init -backend-config "bucket=YOUR_BUCKET_NAME" -backend-config "key=file.state"`
+`terraform init -backend-config "bucket=YOUR_BUCKET_NAME"`
 
 * If you are going to have one EKS per environment - select workspace (assume it is "dev"):
 

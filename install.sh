@@ -6,7 +6,7 @@ set -e
 KUBE2IAM_HELM_CHART_VERSION="${KUBE2IAM_HELM_CHART_VERSION:-2.0.2}"
 CLUSTER_AUTOSCALER_HELM_CHART_VERSION="${CLUSTER_AUTOSCALER_HELM_CHART_VERSION:-6.0.0}"
 KUBERNETES_DASHBOARD_HELM_CHART_VERSION="${KUBERNETES_DASHBOARD_HELM_CHART_VERSION:-1.10.0}"
-PROMETHEUS_OPERATOR_HELM_CHART_VERSION="${PROMETHEUS_OPERATOR_HELM_CHART_VERSION:-6.21.0}"
+PROMETHEUS_OPERATOR_HELM_CHART_VERSION="${PROMETHEUS_OPERATOR_HELM_CHART_VERSION:-8.2.0}"
 
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -58,12 +58,15 @@ kubectl patch pv efs-pv --patch '{"spec":{"claimRef": null}}'
 kubectl apply -f $DIR/eks-admin-service-account.yaml
 kubectl apply -f $DIR/eks-admin-cluster-role-binding.yaml
 
-# init helm and run local tiller
-helm init --wait --client-only
+# init helm
+helm repo add stable https://kubernetes-charts.storage.googleapis.com
+#helm init --wait --client-only
 helm repo update
-killall tiller || echo "no tiller started"
-tiller &
-export HELM_HOST=localhost:44134
+
+#helm 3 doesn't need Tiller
+#killall tiller || echo "no tiller started"
+#tiller &
+#export HELM_HOST=localhost:44134
 
 # wait for at least 1 node
 while [[ ! $(kubectl get nodes | grep -i ready) ]]; do
@@ -106,16 +109,17 @@ helm upgrade --install --wait \
   kubernetes-dashboard stable/kubernetes-dashboard
 
 #install prometheus operator
-helm upgrade --install --wait --dry-run \
-  --namespace monitoring \
-  --values ./prometheus-operator-helm-chart-values.yaml \
-  --version $PROMETHEUS_OPERATOR_HELM_CHART_VERSION \
-  prometheus-operator stable/prometheus-operator
-helm upgrade --install --wait \
-  --namespace monitoring \
-  --values ./prometheus-operator-helm-chart-values.yaml \
-  --version $PROMETHEUS_OPERATOR_HELM_CHART_VERSION \
-  prometheus-operator stable/prometheus-operator
+# helm 3 doesn't install it for some reason
+#helm upgrade --install --wait --dry-run \
+#  --namespace monitoring \
+#  --values ./prometheus-operator-helm-chart-values.yaml \
+#  --version $PROMETHEUS_OPERATOR_HELM_CHART_VERSION \
+#  prometheus-operator stable/prometheus-operator
+#helm upgrade --install --wait \
+#  --namespace monitoring \
+#  --values ./prometheus-operator-helm-chart-values.yaml \
+#  --version $PROMETHEUS_OPERATOR_HELM_CHART_VERSION \
+#  prometheus-operator stable/prometheus-operator
 
 
 cat << EOF
