@@ -48,7 +48,7 @@ resource "aws_launch_configuration" "node_launch_configuration" {
   }
 }
 
-resource "aws_autoscaling_group" "node_autoscaling_group" {
+  resource "aws_autoscaling_group" "node_autoscaling_group" {
   count = var.node_create
   desired_capacity     = "${var.node_autoscaling_group_desired_capacity}"
   launch_configuration =  "${element(aws_launch_configuration.node_launch_configuration.*.name, count.index)}"

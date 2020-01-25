@@ -2,9 +2,9 @@ provider "aws" {
 }
 terraform {
   backend "s3" {
-    dynamodb_table = "terraform-state-lock"
+    #dynamodb_table = "terraform-state-lock"
     encrypt= "true"
-    key= "file.state"
+    key= "terraform-aws-eks.state"
   }
 }
 
@@ -17,21 +17,43 @@ resource "aws_key_pair" "key-pair" {
   public_key = "${file(var.aws_key_pair_public_key_path)}"
 }
 
-module "net" {
-  source                = "./modules/net"
-  net_vpc_name          = "${var.eks_cluster_name}"
-  net_eks_cluster_name  = "${var.eks_cluster_name}"
-  net_route_table_name  = "${var.eks_cluster_name}"
-  net_vpc_cidr_block    = "${var.net_vpc_cidr_block}"
-  net_subnet_cidr_block = "${var.net_subnet_cidr_block}"
+
+module "vpc" {
+
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "2.24.0"
+
+  name = var.eks_cluster_name
+
+  cidr = var.net_vpc_cidr_block
+
+  enable_dns_hostnames = true
+
+  azs             = ["${data.aws_region.current.name}a", "${data.aws_region.current.name}b"]
+  private_subnets = var.net_private_subnet_cidr_blocks
+  public_subnets  = var.net_public_subnet_cidr_blocks
+
+
+  enable_nat_gateway = false # No need in nat, EC2 instances public IPs are free
+
+  tags = {
+    Terraform   = true
+    Environment = terraform.workspace
+    Name        = var.eks_cluster_name
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "shared"
+  }
 }
+
+
+
+
 
 #create security groups
 module "security_group" {
   source = "./modules/security_group"
   security_group_name_eks                 = "${var.eks_cluster_name}"
   security_group_name_node                = "${var.eks_cluster_name}-node"
-  security_group_vpc_id                   = "${module.net.net_vpc_id}"
+  security_group_vpc_id                   = "${module.vpc.vpc_id}"
   security_group_eks_external_cidr_blocks = "${var.security_group_eks_external_cidr_blocks}"
   security_group_eks_cluster_name         = "${var.eks_cluster_name}"
 }
@@ -96,7 +118,7 @@ module "efs" {
   source                        = "./modules/efs"
   efs_name                      = var.eks_cluster_name
   efs_node_security_group_id    = module.security_group.security_group_id_node
-  efs_node_subnet_ids           = module.net.net_vpc_subnet_ids
+  efs_node_subnet_ids           = module.vpc.public_subnets
 }
 
 #create eks
@@ -104,8 +126,8 @@ module "eks" {
   source = "./modules/eks"
   eks_cluster_name          = "${var.eks_cluster_name}"
   eks_k8s_version           = "${var.k8s_version}"
-  eks_vpc_id                = "${module.net.net_vpc_id}"
-  eks_cluster_subnet_ids    = module.net.net_vpc_subnet_ids
+  eks_vpc_id                = "${module.vpc.vpc_id}"
+  eks_cluster_subnet_ids    = module.vpc.public_subnets
   eks_security_group_ids     = ["${module.security_group.security_group_id_eks}"]
   eks_iam_role_arn         = "${module.eks_iam_role.eks_iam_role_arn}"
 }
@@ -131,8 +153,8 @@ module "system_node" {
   node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
-  node_vpc_id                             = "${module.net.net_vpc_id}"
-  node_vpc_zone_identifier                = module.net.net_vpc_subnet_ids
+  node_vpc_id                             = "${module.vpc.vpc_id}"
+  node_vpc_zone_identifier                = module.vpc.public_subnets
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
   node_kubelet_extra_args                 = "--register-with-taints=node-role.kubernetes.io/system=system:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-system-node,node-role.kubernetes.io/system=system"
 }
@@ -161,8 +183,8 @@ module "spot_node" {
   node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
-  node_vpc_id                             = "${module.net.net_vpc_id}"
-  node_vpc_zone_identifier                = module.net.net_vpc_subnet_ids
+  node_vpc_id                             = module.vpc.vpc_id
+  node_vpc_zone_identifier                = module.vpc.public_subnets
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
   node_kubelet_extra_args                 = "--register-with-taints=node-role.kubernetes.io/spot=spot:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-spot-node,node-role.kubernetes.io/regular=regular,node-role.kubernetes.io/spot=spot"
 }
@@ -190,8 +212,8 @@ module "on_demand_node" {
   node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
-  node_vpc_id                             = "${module.net.net_vpc_id}"
-  node_vpc_zone_identifier                = module.net.net_vpc_subnet_ids
+  node_vpc_id                             = "${module.vpc.vpc_id}"
+  node_vpc_zone_identifier                = module.vpc.public_subnets
   node_security_group_id                  = "${module.security_group.security_group_id_node}"
   node_kubelet_extra_args                 = "--node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-on-demand-node,node-role.kubernetes.io/regular=regular"
 }

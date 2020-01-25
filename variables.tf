@@ -15,9 +15,13 @@ variable "security_group_eks_external_cidr_blocks" {
 ########### vpc options #################
 #########################################
 variable "net_vpc_cidr_block" {default = "10.0.0.0/16"}
-variable "net_subnet_cidr_block" {
+variable "net_public_subnet_cidr_blocks" {
   type = "list"
   default = ["10.0.0.0/24","10.0.1.0/24"]
+}
+variable "net_private_subnet_cidr_blocks" {
+  type = "list"
+  default = ["10.0.2.0/24","10.0.3.0/24"]
 }
 
 #########################################
