@@ -29,7 +29,12 @@ module "vpc" {
 
   enable_dns_hostnames = true
 
-  azs             = ["${data.aws_region.current.name}a", "${data.aws_region.current.name}b"]
+  azs             = [
+    "${data.aws_region.current.name}a",
+    "${data.aws_region.current.name}b",
+    "${data.aws_region.current.name}c",
+    "${data.aws_region.current.name}d"
+  ]
   private_subnets = var.net_private_subnet_cidr_blocks
   public_subnets  = var.net_public_subnet_cidr_blocks
 
@@ -165,13 +170,50 @@ module "eks_iam_role" {
   eks_admin_iam_policy_name  = "${var.eks_cluster_name}-eks-admin"
 }
 
-#efs volume
-module "efs" {
-  source                        = "./modules/efs"
-  efs_name                      = var.eks_cluster_name
-  efs_node_security_group_id    = module.eks_node_security_group.this_security_group_id
-  efs_node_subnet_ids           = module.vpc.public_subnets
+resource "aws_efs_file_system" "efs" {
+  encrypted = true
+  lifecycle_policy {
+    transition_to_ia = "AFTER_90_DAYS"
+  }
+  tags = {
+    Terraform   = true
+    Name        = var.eks_cluster_name
+    Environment = terraform.workspace
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "owned"
+  }
 }
+
+module "efs_security_group" {
+  source                                = "terraform-aws-modules/security-group/aws"
+  version                               = "3.4.0"
+  name                                  = "${var.eks_cluster_name}-efs"
+  description                           = "Security group for TeamCity EFS storage"
+  vpc_id                                = module.vpc.vpc_id
+  egress_rules                          = ["all-all"]
+  ingress_with_source_security_group_id = [
+    {
+      from_port                = 2049
+      to_port                  = 2049
+      protocol                 = "tcp"
+      description              = "Allow EC2 instantes connect to EFS"
+      source_security_group_id = module.eks_node_security_group.this_security_group_id
+    },
+  ]
+  tags = {
+    Terraform   = true
+    Name        = "${var.eks_cluster_name}-efs"
+    Environment = terraform.workspace
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "owned"
+  }
+}
+
+resource "aws_efs_mount_target" "public_subnets" {
+  count           = length(module.vpc.public_subnets)
+  file_system_id  = aws_efs_file_system.efs.id
+  subnet_id       = "${element(module.vpc.public_subnets, count.index)}"
+  security_groups = ["${module.efs_security_group.this_security_group_id}"]
+}
+
 
 #create eks
 module "eks" {
@@ -183,6 +225,9 @@ module "eks" {
   eks_security_group_ids     = ["${module.eks_server_security_group.this_security_group_id}"]
   eks_iam_role_arn         = "${module.eks_iam_role.eks_iam_role_arn}"
 }
+
+
+
 
 #create system nodes for running such applications as kubernetes-dashboard and cluster-autscaller
 module "system_node" {
@@ -269,3 +314,4 @@ module "on_demand_node" {
   node_security_group_id                  = module.eks_node_security_group.this_security_group_id
   node_kubelet_extra_args                 = "--node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-on-demand-node,node-role.kubernetes.io/regular=regular"
 }
+
