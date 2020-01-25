@@ -45,21 +45,73 @@ module "vpc" {
 }
 
 
-
-
-
 #create security groups
-module "security_group" {
-  source = "./modules/security_group"
-  security_group_name_eks                 = "${var.eks_cluster_name}"
-  security_group_name_node                = "${var.eks_cluster_name}-node"
-  security_group_vpc_id                   = "${module.vpc.vpc_id}"
-  security_group_eks_external_cidr_blocks = "${var.security_group_eks_external_cidr_blocks}"
-  security_group_eks_cluster_name         = "${var.eks_cluster_name}"
+module "eks_node_security_group" {
+  source                                = "terraform-aws-modules/security-group/aws"
+  version                               = "3.4.0"
+
+  name                                  = "${var.eks_cluster_name}-node"
+  description                           = "Security group for EKS nodes"
+  vpc_id                                = module.vpc.vpc_id
+  egress_rules                          = ["all-all"]
+  ingress_with_source_security_group_id = [
+    {
+      from_port                = 0
+      to_port                  = 65535
+      protocol                 = "-1"
+      description              = "Allow k8s nodes ccommunicate to each other"
+      source_security_group_id = module.eks_node_security_group.this_security_group_id
+    },
+    {
+      from_port                = 1025
+      to_port                  = 65535
+      protocol                 = "tcp"
+      description              = "Allow EKS server connect to nodes"
+      source_security_group_id = module.eks_server_security_group.this_security_group_id
+    },
+  ]
+  tags = {
+    Terraform   = true
+    Name        = "${var.eks_cluster_name}-node"
+    Environment = terraform.workspace
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "owned"
+  }
 }
 
 
+module "eks_server_security_group" {
+  source                                = "terraform-aws-modules/security-group/aws"
+  version                               = "3.4.0"
 
+  name                                  = var.eks_cluster_name
+  description                           = "Security group for example usage with ALB"
+  vpc_id                                = module.vpc.vpc_id
+  egress_rules                          = ["all-all"]
+  ingress_with_source_security_group_id = [
+    {
+      from_port                = 443
+      to_port                  = 443
+      protocol                 = "tcp"
+      description              = "Allow k8s nodes connect to EKS server"
+      source_security_group_id = module.eks_node_security_group.this_security_group_id
+    }
+  ]
+  ingress_with_cidr_blocks = [
+    for cidr in var.security_group_eks_external_cidr_blocks: {
+      from_port   = 443
+      to_port     = 443
+      protocol    = "tcp"
+      description = "Allow users connect to EKS server"
+      cidr_blocks = cidr
+    }
+  ]
+  tags = {
+    Terraform   = true
+    Name        = "${var.eks_cluster_name}"
+    Environment = terraform.workspace
+    "kubernetes.io/cluster/${var.eks_cluster_name}" = "owned"
+  }
+}
 
 
 #create cluster autoscaler iam role
@@ -117,7 +169,7 @@ module "eks_iam_role" {
 module "efs" {
   source                        = "./modules/efs"
   efs_name                      = var.eks_cluster_name
-  efs_node_security_group_id    = module.security_group.security_group_id_node
+  efs_node_security_group_id    = module.eks_node_security_group.this_security_group_id
   efs_node_subnet_ids           = module.vpc.public_subnets
 }
 
@@ -128,7 +180,7 @@ module "eks" {
   eks_k8s_version           = "${var.k8s_version}"
   eks_vpc_id                = "${module.vpc.vpc_id}"
   eks_cluster_subnet_ids    = module.vpc.public_subnets
-  eks_security_group_ids     = ["${module.security_group.security_group_id_eks}"]
+  eks_security_group_ids     = ["${module.eks_server_security_group.this_security_group_id}"]
   eks_iam_role_arn         = "${module.eks_iam_role.eks_iam_role_arn}"
 }
 
@@ -150,12 +202,12 @@ module "system_node" {
   node_launch_configuration_type          = "on_demand"
   node_eks_cluster_name                   = "${var.eks_cluster_name}"
   node_eks_endpoint                       = "${module.eks.eks_cluster_endpoint}"
-  node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
+  //node_eks_security_group_id              = "${ module.eks_node_security_group.this_security_group_id}"
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = "${module.vpc.vpc_id}"
   node_vpc_zone_identifier                = module.vpc.public_subnets
-  node_security_group_id                  = "${module.security_group.security_group_id_node}"
+  node_security_group_id                  = module.eks_node_security_group.this_security_group_id
   node_kubelet_extra_args                 = "--register-with-taints=node-role.kubernetes.io/system=system:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-system-node,node-role.kubernetes.io/system=system"
 }
 
@@ -180,12 +232,12 @@ module "spot_node" {
   node_launch_configuration_spot_price    = "${var.spot_node_launch_configuration_spot_price}"
   node_eks_cluster_name                   = "${var.eks_cluster_name}"
   node_eks_endpoint                       = "${module.eks.eks_cluster_endpoint}"
-  node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
+  //node_eks_security_group_id              = "module.eks_node_security_group.this_security_group_id
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = module.vpc.vpc_id
   node_vpc_zone_identifier                = module.vpc.public_subnets
-  node_security_group_id                  = "${module.security_group.security_group_id_node}"
+  node_security_group_id                  = module.eks_node_security_group.this_security_group_id
   node_kubelet_extra_args                 = "--register-with-taints=node-role.kubernetes.io/spot=spot:PreferNoSchedule --node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-spot-node,node-role.kubernetes.io/regular=regular,node-role.kubernetes.io/spot=spot"
 }
 
@@ -209,11 +261,11 @@ module "on_demand_node" {
   node_launch_configuration_type          = "on_demand"
   node_eks_cluster_name                   = "${var.eks_cluster_name}"
   node_eks_endpoint                       = "${module.eks.eks_cluster_endpoint}"
-  node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
+  //node_eks_security_group_id              = "${module.security_group.security_group_id_eks}"
   node_eks_ca                             = "${module.eks.eks_cluster_ca_data}"
   node_k8s_version                        = "${var.k8s_version}"
   node_vpc_id                             = "${module.vpc.vpc_id}"
   node_vpc_zone_identifier                = module.vpc.public_subnets
-  node_security_group_id                  = "${module.security_group.security_group_id_node}"
+  node_security_group_id                  = module.eks_node_security_group.this_security_group_id
   node_kubelet_extra_args                 = "--node-labels=aws_autoscaling_group_name=${var.eks_cluster_name}-on-demand-node,node-role.kubernetes.io/regular=regular"
 }

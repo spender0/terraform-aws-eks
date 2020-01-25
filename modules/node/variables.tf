@@ -5,7 +5,6 @@ variable "node_security_group_id" {}
 variable "node_eks_cluster_name" {}
 variable "node_k8s_version" {}
 variable "node_eks_endpoint" {}
-variable "node_eks_security_group_id" {}
 variable "node_eks_ca" {}
 variable "node_iam_instance_profile_name" {}
 variable "node_key_pair_name" {}
